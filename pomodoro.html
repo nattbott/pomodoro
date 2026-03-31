@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pomodoro Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg: #ba4949; --surface: rgba(0,0,0,0.15); --muted: rgba(255,255,255,0.6); --text2: rgba(255,255,255,0.75); --radius: 16px; }
+  body { background: var(--bg); color: #fff; font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; transition: background 0.4s; }
+  .app { width: 100%; max-width: 480px; }
+  .mode-tabs { display: flex; background: var(--surface); border-radius: 50px; padding: 4px; margin-bottom: 2rem; }
+  .mode-tab { flex: 1; padding: 8px 12px; border: none; background: transparent; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; border-radius: 50px; cursor: pointer; transition: all 0.2s; }
+  .mode-tab.active { background: rgba(255,255,255,0.25); color: #fff; }
+  .timer-card { background: var(--surface); border-radius: var(--radius); padding: 2.5rem 2rem 2rem; margin-bottom: 1.5rem; text-align: center; }
+  .session-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; font-family: 'DM Mono', monospace; }
+  .ring-wrap { position: relative; width: 200px; height: 200px; margin: 0 auto 1.5rem; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 6; }
+  .ring-progress { fill: none; stroke: rgba(255,255,255,0.9); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+  .timer-display { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .timer-time { font-family: 'DM Serif Display', serif; font-size: 52px; color: #fff; line-height: 1; }
+  .timer-phase { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 1.5rem; }
+  .btn-icon { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .btn-icon:hover { background: rgba(255,255,255,0.25); }
+  .btn-main { background: #fff; border: none; color: #ba4949; width: 64px; height: 64px; border-radius: 50%; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .btn-main:hover { transform: scale(1.06); }
+  .pomodoros-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .pom-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: background 0.3s; }
+  .pom-dot.done { background: #fff; }
+  .pom-dot.current { background: rgba(255,255,255,0.6); }
+  .sound-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 1rem; }
+  .sound-label { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .sound-select { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 4px 8px; cursor: pointer; outline: none; }
+  .btn-test { background: rgba(255,255,255,0.15); border: none; color: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .btn-test:hover { background: rgba(255,255,255,0.25); }
+  .task-section { background: var(--surface); border-radius: var(--radius); padding: 1.25rem; }
+  .task-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .task-title { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .task-actions { display: flex; gap: 6px; align-items: center; }
+  .btn-add { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; line-height: 1; }
+  .btn-add:hover { background: rgba(255,255,255,0.3); }
+  .btn-clear { background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.5); border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .btn-clear:hover { background: rgba(255,255,255,0.2); color: #fff; }
+  .task-input-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .task-input { flex: 1; background: rgba(0,0,0,0.15); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 8px 12px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .task-input:focus { border-color: rgba(255,255,255,0.6); }
+  .task-input::placeholder { color: rgba(255,255,255,0.4); }
+  .btn-confirm { background: #fff; border: none; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+  .btn-confirm:hover { opacity: 0.85; }
+  .task-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+  .task-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(0,0,0,0.1); border-radius: 10px; cursor: pointer; transition: all 0.2s; border: 1.5px solid transparent; }
+  .task-item:hover { background: rgba(0,0,0,0.2); }
+  .task-item.active-task { border-color: rgba(255,255,255,0.5); }
+  .task-check { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; cursor: pointer; font-size: 10px; }
+  .task-check.done { background: #fff; border-color: #fff; color: #ba4949; }
+  .task-name { flex: 1; font-size: 13px; color: #fff; }
+  .task-name.done { text-decoration: line-through; color: var(--muted); }
+  .task-poms { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .task-del { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 14px; opacity: 0; transition: opacity 0.2s; padding: 0 2px; }
+  .task-item:hover .task-del { opacity: 1; }
+  .task-del:hover { color: #fff; }
+  .empty-state { text-align: center; padding: 1.5rem 0; color: var(--muted); font-size: 13px; }
+  .saved-badge { font-size: 10px; color: rgba(255,255,255,0.35); font-family: 'DM Mono', monospace; text-align: center; margin-top: 0.75rem; letter-spacing: 0.05em; opacity: 0; transition: opacity 1s; }
+  .saved-badge.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="pomo">Pomodoro</button>
+    <button class="mode-tab" data-mode="short">Short Break</button>
+    <button class="mode-tab" data-mode="long">Long Break</button>
+  </div>
+  <div class="timer-card">
+    <div class="session-label" id="session-label">Focus session</div>
+    <div class="ring-wrap">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <circle class="ring-bg" cx="100" cy="100" r="88"/>
+        <circle class="ring-progress" id="ring" cx="100" cy="100" r="88" stroke-dasharray="552.92" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-display">
+        <div class="timer-time" id="timer-display">25:00</div>
+        <div class="timer-phase" id="timer-phase">ready</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn-icon" id="btn-reset" title="Reset">↺</button>
+      <button class="btn-main" id="btn-main">Start</button>
+      <button class="btn-icon" id="btn-skip" title="Skip">⏭</button>
+    </div>
+    <div class="pomodoros-row" id="pom-dots"></div>
+    <div class="sound-row">
+      <span class="sound-label">alarm</span>
+      <select class="sound-select" id="sound-select">
+        <option value="bell">Bell</option>
+        <option value="digital">Digital</option>
+        <option value="soft">Soft chime</option>
+        <option value="none">None</option>
+      </select>
+      <button class="btn-test" id="btn-test">Test</button>
+    </div>
+  </div>
+  <div class="task-section">
+    <div class="task-header">
+      <span class="task-title">Tasks</span>
+      <div class="task-actions">
+        <button class="btn-clear" id="btn-clear-done">Clear done</button>
+        <button class="btn-add" id="btn-add-task">+</button>
+      </div>
+    </div>
+    <div id="task-input-area" style="display:none;">
+      <div class="task-input-row">
+        <input class="task-input" id="task-input" placeholder="What are you working on?" maxlength="60"/>
+        <button class="btn-confirm" id="btn-confirm-task">Add</button>
+      </div>
+    </div>
+    <div class="task-list" id="task-list">
+      <div class="empty-state" id="empty-state">No tasks yet — add one above</div>
+    </div>
+    <div class="saved-badge" id="saved-badge">saved locally</div>
+  </div>
+</div>
+
+<script>
+const MODES = {
+  pomo:  { label: 'Focus session', duration: 25*60, bg: '#ba4949', btnColor: '#ba4949' },
+  short: { label: 'Short break',   duration: 5*60,  bg: '#38858a', btnColor: '#38858a' },
+  long:  { label: 'Long break',    duration: 15*60, bg: '#397097', btnColor: '#397097' }
+};
+const CIRC = 2 * Math.PI * 88;
+const STORAGE_KEY = 'pomodoro_tasks';
+
+let mode='pomo', timeLeft=25*60, running=false, interval=null;
+let pomosCompleted=0, activeTaskId=null, showInput=false;
+let audioCtx = null;
+let saveTimer = null;
+
+// Load tasks from localStorage
+let tasks = [];
+let nextId = 1;
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const data = JSON.parse(saved);
+    tasks = data.tasks || [];
+    nextId = data.nextId || (tasks.length ? Math.max(...tasks.map(t=>t.id)) + 1 : 1);
+  }
+} catch(e) {}
+
+function saveTasks() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks, nextId }));
+    const badge = document.getElementById('saved-badge');
+    badge.classList.add('show');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => badge.classList.remove('show'), 2000);
+  } catch(e) {}
+}
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playAlarm() {
+  const type = document.getElementById('sound-select').value;
+  if (type === 'none') return;
+  const ac = getAudioCtx();
+  if (type === 'bell') {
+    [0, 0.15, 0.3].forEach((delay, i) => {
+      const osc = ac.createOscillator(), gain = ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880 / (i * 0.15 + 1) + 220, ac.currentTime + delay);
+      gain.gain.setValueAtTime(0.4, ac.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + 1.2);
+      osc.start(ac.currentTime + delay); osc.stop(ac.currentTime + delay + 1.3);
+    });
+  } else if (type === 'digital') {
+    [0, 0.2, 0.4, 0.6].forEach(delay => {
+      const osc = ac.createOscillator(), gain = ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.type = 'square'; osc.frequency.setValueAtTime(880, ac.currentTime + delay);
+      gain.gain.setValueAtTime(0.15, ac.currentTime + delay);
+      gain.gain.setValueAtTime(0, ac.currentTime + delay + 0.12);
+      osc.start(ac.currentTime + delay); osc.stop(ac.currentTime + delay + 0.13);
+    });
+  } else if (type === 'soft') {
+    [0, 0.4, 0.8].forEach((delay, i) => {
+      const osc = ac.createOscillator(), gain = ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.type = 'sine'; osc.frequency.setValueAtTime([523,659,784][i], ac.currentTime + delay);
+      gain.gain.setValueAtTime(0.25, ac.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + 0.6);
+      osc.start(ac.currentTime + delay); osc.stop(ac.currentTime + delay + 0.65);
+    });
+  }
+}
+
+const ring = document.getElementById('ring');
+const display = document.getElementById('timer-display');
+const phaseEl = document.getElementById('timer-phase');
+const sessionLabel = document.getElementById('session-label');
+const btnMain = document.getElementById('btn-main');
+const dotsEl = document.getElementById('pom-dots');
+const taskList = document.getElementById('task-list');
+const emptyState = document.getElementById('empty-state');
+const taskInputArea = document.getElementById('task-input-area');
+const taskInput = document.getElementById('task-input');
+
+function fmt(s) { return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+function updateRing() { ring.style.strokeDashoffset = CIRC * (1 - timeLeft / MODES[mode].duration); }
+
+function renderDots() {
+  dotsEl.innerHTML = '';
+  for (let i=0; i<4; i++) {
+    const d = document.createElement('div');
+    d.className = 'pom-dot' + (i < pomosCompleted%4 ? ' done' : '') + (mode==='pomo'&&running&&i===pomosCompleted%4 ? ' current' : '');
+    dotsEl.appendChild(d);
+  }
+}
+
+function setMode(m) {
+  clearInterval(interval); running=false; mode=m;
+  timeLeft=MODES[m].duration;
+  sessionLabel.textContent=MODES[m].label;
+  display.textContent=fmt(timeLeft);
+  phaseEl.textContent='ready';
+  btnMain.textContent='Start';
+  btnMain.style.color=MODES[m].btnColor;
+  document.body.style.background=MODES[m].bg;
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===m));
+  updateRing(); renderDots();
+}
+
+function tick() {
+  if (timeLeft <= 0) {
+    clearInterval(interval); running=false;
+    btnMain.textContent='Start';
+    btnMain.style.color=MODES[mode].btnColor;
+    phaseEl.textContent='done!';
+    playAlarm();
+    if (mode==='pomo') {
+      pomosCompleted++;
+      const t=tasks.find(x=>x.id===activeTaskId);
+      if(t){ t.poms++; saveTasks(); renderTasks(); }
+      renderDots();
+    }
+    return;
+  }
+  timeLeft--;
+  display.textContent=fmt(timeLeft);
+  phaseEl.textContent=mode==='pomo'?'focus':'break';
+  updateRing();
+}
+
+btnMain.addEventListener('click', () => {
+  if (running) {
+    clearInterval(interval); running=false;
+    btnMain.textContent='Resume';
+    phaseEl.textContent='paused';
+  } else {
+    running=true;
+    btnMain.textContent='Pause';
+    interval=setInterval(tick,1000);
+  }
+});
+
+document.getElementById('btn-reset').addEventListener('click', ()=>setMode(mode));
+document.getElementById('btn-skip').addEventListener('click', ()=>{
+  if(mode==='pomo'){ pomosCompleted++; renderDots(); setMode(pomosCompleted%4===0?'long':'short'); }
+  else setMode('pomo');
+});
+document.getElementById('btn-test').addEventListener('click', playAlarm);
+document.querySelectorAll('.mode-tab').forEach(tab=>tab.addEventListener('click',()=>setMode(tab.dataset.mode)));
+
+document.getElementById('btn-clear-done').addEventListener('click', ()=>{
+  tasks = tasks.filter(t=>!t.done);
+  if (!tasks.find(t=>t.id===activeTaskId)) activeTaskId=null;
+  saveTasks(); renderTasks();
+});
+
+function renderTasks() {
+  taskList.innerHTML='';
+  if(!tasks.length){ taskList.appendChild(emptyState); return; }
+  tasks.forEach(t=>{
+    const item=document.createElement('div');
+    item.className='task-item'+(t.id===activeTaskId?' active-task':'');
+    item.innerHTML=`
+      <div class="task-check ${t.done?'done':''}">${t.done?'✓':''}</div>
+      <span class="task-name ${t.done?'done':''}">${t.name}</span>
+      <span class="task-poms">${t.poms>0?t.poms+' 🍅':''}</span>
+      <button class="task-del">✕</button>`;
+    item.addEventListener('click',e=>{
+      if(e.target.classList.contains('task-check')||e.target.classList.contains('task-del'))return;
+      activeTaskId=t.id; renderTasks();
+    });
+    item.querySelector('.task-check').addEventListener('click',e=>{
+      e.stopPropagation(); t.done=!t.done; saveTasks(); renderTasks();
+    });
+    item.querySelector('.task-del').addEventListener('click',e=>{
+      e.stopPropagation();
+      tasks=tasks.filter(x=>x.id!==t.id);
+      if(activeTaskId===t.id) activeTaskId=null;
+      saveTasks(); renderTasks();
+    });
+    taskList.appendChild(item);
+  });
+}
+
+document.getElementById('btn-add-task').addEventListener('click',()=>{
+  showInput=!showInput;
+  taskInputArea.style.display=showInput?'block':'none';
+  if(showInput) taskInput.focus();
+});
+
+function addTask(){
+  const name=taskInput.value.trim(); if(!name)return;
+  tasks.push({id:nextId++, name, done:false, poms:0});
+  taskInput.value=''; taskInputArea.style.display='none'; showInput=false;
+  saveTasks(); renderTasks();
+}
+
+document.getElementById('btn-confirm-task').addEventListener('click', addTask);
+taskInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter') addTask();
+  if(e.key==='Escape'){ taskInputArea.style.display='none'; showInput=false; }
+});
+
+setMode('pomo');
+renderTasks();
+</script>
+</body>
+</html>
