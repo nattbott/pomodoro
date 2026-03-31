@@ -65,8 +65,20 @@
   .btn-confirm { background: #fff; border: none; border-radius: 10px; padding: 9px 16px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: opacity 0.2s; }
   .btn-confirm:hover { opacity: 0.85; }
 
+  .drag-handle { color: rgba(255,255,255,0.25); font-size: 14px; cursor: grab; padding: 0 2px; flex-shrink: 0; user-select: none; }
+  .drag-handle:active { cursor: grabbing; }
+  .cat-drag-handle { color: rgba(255,255,255,0.25); font-size: 16px; cursor: grab; padding: 2px 4px; user-select: none; flex-shrink: 0; }
+  .cat-drag-handle:active { cursor: grabbing; }
+  .dragging { opacity: 0.35; }
+  .drag-over-top { border-top: 2px solid rgba(255,255,255,0.7) !important; }
+  .drag-over-bottom { border-bottom: 2px solid rgba(255,255,255,0.7) !important; }
+  .cat-drag-over-top { border-top: 3px solid rgba(255,255,255,0.7) !important; }
+  .cat-drag-over-bottom { border-bottom: 3px solid rgba(255,255,255,0.7) !important; }
+  .task-list-drop { min-height: 44px; }
+  .task-list-highlight { outline: 2px dashed rgba(255,255,255,0.3); outline-offset: 2px; border-radius: 10px; }
+
   .task-list { display: flex; flex-direction: column; gap: 7px; }
-  .task-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(0,0,0,0.12); border-radius: 10px; cursor: pointer; transition: all 0.2s; border: 1.5px solid transparent; }
+  .task-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(0,0,0,0.12); border-radius: 10px; cursor: pointer; transition: background 0.15s, opacity 0.15s; border: 1.5px solid transparent; }
   .task-item:hover { background: rgba(0,0,0,0.2); }
   .task-item.active-task { border-color: rgba(255,255,255,0.5); background: rgba(0,0,0,0.18); }
   .task-check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; cursor: pointer; font-size: 11px; }
@@ -287,6 +299,16 @@ document.getElementById('btn-skip').addEventListener('click',()=>{
 document.getElementById('btn-test').addEventListener('click',playAlarm);
 document.querySelectorAll('.mode-tab').forEach(tab=>tab.addEventListener('click',()=>setMode(tab.dataset.mode)));
 
+// Drag state
+let dragTaskId=null, dragTaskSrcCatId=null;
+let dragCatId=null;
+
+function clearDropStyles() {
+  document.querySelectorAll('.drag-over-top,.drag-over-bottom,.cat-drag-over-top,.cat-drag-over-bottom,.task-list-highlight').forEach(el=>{
+    el.classList.remove('drag-over-top','drag-over-bottom','cat-drag-over-top','cat-drag-over-bottom','task-list-highlight');
+  });
+}
+
 function renderCategories() {
   const container = document.getElementById('categories');
   container.innerHTML='';
@@ -294,15 +316,65 @@ function renderCategories() {
   data.categories.forEach(cat => {
     const section = document.createElement('div');
     section.className='category';
+    section.dataset.catId=cat.id;
+
+    // Category drag
+    section.addEventListener('dragover',e=>{
+      if(dragCatId===null) return;
+      e.preventDefault();e.stopPropagation();
+      clearDropStyles();
+      const rect=section.getBoundingClientRect();
+      const mid=rect.top+rect.height/2;
+      if(e.clientY<mid) section.classList.add('cat-drag-over-top');
+      else section.classList.add('cat-drag-over-bottom');
+    });
+    section.addEventListener('dragleave',e=>{
+      if(!section.contains(e.relatedTarget)) clearDropStyles();
+    });
+    section.addEventListener('drop',e=>{
+      if(dragCatId===null) return;
+      e.preventDefault();e.stopPropagation();
+      clearDropStyles();
+      const fromIdx=data.categories.findIndex(c=>c.id===dragCatId);
+      const toIdx=data.categories.findIndex(c=>c.id===cat.id);
+      if(fromIdx===-1||fromIdx===toIdx){dragCatId=null;return;}
+      const rect=section.getBoundingClientRect();
+      const mid=rect.top+rect.height/2;
+      const insertAfter=e.clientY>=mid;
+      const [moved]=data.categories.splice(fromIdx,1);
+      const newTo=data.categories.findIndex(c=>c.id===cat.id);
+      data.categories.splice(insertAfter?newTo+1:newTo,0,moved);
+      dragCatId=null;save();renderCategories();
+    });
 
     // Header row
     const header = document.createElement('div');
     header.className='cat-header';
 
+    // Category drag handle
+    const catHandle=document.createElement('span');
+    catHandle.className='cat-drag-handle';
+    catHandle.textContent='⠿';
+    catHandle.title='Drag to reorder';
+    catHandle.addEventListener('mousedown',()=>{section.draggable=true;});
+    section.addEventListener('dragstart',e=>{
+      if(dragTaskId!==null){section.draggable=false;return;}
+      dragCatId=cat.id;dragTaskId=null;
+      e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>section.classList.add('dragging'),0);
+    });
+    section.addEventListener('dragend',()=>{
+      section.draggable=false;
+      section.classList.remove('dragging');
+      clearDropStyles();
+      dragCatId=null;
+    });
+
     const titleInput = document.createElement('input');
     titleInput.className='cat-title';
     titleInput.value=cat.name;
     titleInput.spellcheck=false;
+    titleInput.addEventListener('mousedown',e=>e.stopPropagation());
     titleInput.addEventListener('change',()=>{
       cat.name=titleInput.value.trim()||'Category';
       titleInput.value=cat.name;save();
@@ -317,6 +389,7 @@ function renderCategories() {
     const clearBtn=document.createElement('button');
     clearBtn.className='btn-cat-clear';
     clearBtn.textContent='Clear done';
+    clearBtn.addEventListener('mousedown',e=>e.stopPropagation());
     clearBtn.addEventListener('click',()=>{
       cat.tasks=cat.tasks.filter(t=>!t.done);save();renderCategories();
     });
@@ -325,6 +398,7 @@ function renderCategories() {
     addBtn.className='btn-round btn-cat-add';
     addBtn.textContent='+';
     addBtn.title='Add task';
+    addBtn.addEventListener('mousedown',e=>e.stopPropagation());
     addBtn.addEventListener('click',()=>{
       cat.showInput=!cat.showInput;save();renderCategories();
     });
@@ -337,6 +411,7 @@ function renderCategories() {
       delBtn.className='btn-round btn-cat-delete';
       delBtn.textContent='✕';
       delBtn.title='Delete category';
+      delBtn.addEventListener('mousedown',e=>e.stopPropagation());
       delBtn.addEventListener('click',()=>{
         if(confirm(`Delete "${cat.name}" and all its tasks?`)){
           data.categories=data.categories.filter(c=>c.id!==cat.id);
@@ -346,6 +421,7 @@ function renderCategories() {
       actions.appendChild(delBtn);
     }
 
+    header.appendChild(catHandle);
     header.appendChild(titleInput);
     header.appendChild(actions);
     section.appendChild(header);
@@ -362,7 +438,6 @@ function renderCategories() {
       confirmBtn.className='btn-confirm';
       confirmBtn.textContent='Add';
       confirmBtn.style.color=MODES[mode].btnColor;
-
       function addTask(){
         const name=inp.value.trim();if(!name)return;
         cat.tasks.push({id:data.nextTaskId++,name,done:false,poms:0});
@@ -378,9 +453,36 @@ function renderCategories() {
       setTimeout(()=>inp.focus(),50);
     }
 
-    // Tasks
+    // Task list
     const taskList=document.createElement('div');
-    taskList.className='task-list';
+    taskList.className='task-list task-list-drop';
+    taskList.dataset.catId=cat.id;
+
+    // Drop into empty task list
+    taskList.addEventListener('dragover',e=>{
+      if(dragTaskId===null) return;
+      e.preventDefault();e.stopPropagation();
+      if(!taskList.querySelector('.task-item')) taskList.classList.add('task-list-highlight');
+    });
+    taskList.addEventListener('dragleave',e=>{
+      if(!taskList.contains(e.relatedTarget)) taskList.classList.remove('task-list-highlight');
+    });
+    taskList.addEventListener('drop',e=>{
+      if(dragTaskId===null) return;
+      e.preventDefault();e.stopPropagation();
+      taskList.classList.remove('task-list-highlight');
+      clearDropStyles();
+      if(cat.tasks.length>0) return; // handled by task item drops
+      // Move to end of this empty category
+      const srcCat=data.categories.find(c=>c.id===dragTaskSrcCatId);
+      if(!srcCat) return;
+      const task=srcCat.tasks.find(t=>t.id===dragTaskId);
+      if(!task) return;
+      srcCat.tasks=srcCat.tasks.filter(t=>t.id!==dragTaskId);
+      cat.tasks.push(task);
+      dragTaskId=null;dragTaskSrcCatId=null;
+      save();renderCategories();
+    });
 
     if(!cat.tasks.length){
       const empty=document.createElement('div');
@@ -391,6 +493,58 @@ function renderCategories() {
       cat.tasks.forEach(t=>{
         const item=document.createElement('div');
         item.className='task-item'+(t.id===activeTaskId?' active-task':'');
+        item.draggable=true;
+        item.dataset.taskId=t.id;
+        item.dataset.catId=cat.id;
+
+        // Task drag events
+        item.addEventListener('dragstart',e=>{
+          if(dragCatId!==null){e.preventDefault();return;}
+          dragTaskId=t.id;dragTaskSrcCatId=cat.id;
+          e.dataTransfer.effectAllowed='move';
+          e.stopPropagation();
+          setTimeout(()=>item.classList.add('dragging'),0);
+        });
+        item.addEventListener('dragend',()=>{
+          item.classList.remove('dragging');
+          clearDropStyles();
+          dragTaskId=null;dragTaskSrcCatId=null;
+        });
+        item.addEventListener('dragover',e=>{
+          if(dragTaskId===null||dragTaskId===t.id) return;
+          e.preventDefault();e.stopPropagation();
+          clearDropStyles();
+          const rect=item.getBoundingClientRect();
+          if(e.clientY<rect.top+rect.height/2) item.classList.add('drag-over-top');
+          else item.classList.add('drag-over-bottom');
+        });
+        item.addEventListener('dragleave',e=>{
+          if(!item.contains(e.relatedTarget)){
+            item.classList.remove('drag-over-top','drag-over-bottom');
+          }
+        });
+        item.addEventListener('drop',e=>{
+          if(dragTaskId===null||dragTaskId===t.id) return;
+          e.preventDefault();e.stopPropagation();
+          const insertAfter=item.classList.contains('drag-over-bottom');
+          clearDropStyles();
+          // Remove task from source
+          const srcCat=data.categories.find(c=>c.id===dragTaskSrcCatId);
+          if(!srcCat) return;
+          const task=srcCat.tasks.find(x=>x.id===dragTaskId);
+          if(!task) return;
+          srcCat.tasks=srcCat.tasks.filter(x=>x.id!==dragTaskId);
+          // Insert into target cat at correct position
+          const tgtIdx=cat.tasks.findIndex(x=>x.id===t.id);
+          cat.tasks.splice(insertAfter?tgtIdx+1:tgtIdx,0,task);
+          dragTaskId=null;dragTaskSrcCatId=null;
+          save();renderCategories();
+        });
+
+        const handle=document.createElement('span');
+        handle.className='drag-handle';
+        handle.textContent='⠿';
+        handle.title='Drag to reorder';
 
         const check=document.createElement('div');
         check.className='task-check'+(t.done?' done':'');
@@ -417,8 +571,11 @@ function renderCategories() {
           save();renderCategories();
         });
 
-        item.appendChild(check);item.appendChild(name);item.appendChild(poms);item.appendChild(del);
-        item.addEventListener('click',()=>{activeTaskId=t.id;renderCategories();});
+        item.appendChild(handle);item.appendChild(check);item.appendChild(name);item.appendChild(poms);item.appendChild(del);
+        item.addEventListener('click',e=>{
+          if(e.target===handle) return;
+          activeTaskId=t.id;renderCategories();
+        });
         taskList.appendChild(item);
       });
     }
