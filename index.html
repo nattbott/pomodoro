@@ -8,9 +8,79 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --bg: #ba4949; --surface: rgba(0,0,0,0.15); --muted: rgba(255,255,255,0.6); --text2: rgba(255,255,255,0.75); --radius: 16px; }
+  :root { --bg: #ba4949; --routine-bg: #6d5b8e; --surface: rgba(0,0,0,0.15); --muted: rgba(255,255,255,0.6); --text2: rgba(255,255,255,0.75); --radius: 16px; }
   body { background: var(--bg); color: #fff; font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem 4rem; transition: background 0.4s; }
   .app { width: 100%; max-width: 520px; }
+
+  .top-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+  .top-nav { display: flex; background: var(--surface); border-radius: 50px; padding: 4px; flex: 1; }
+  .nav-tab { flex: 1; padding: 9px 12px; border: none; background: transparent; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; border-radius: 50px; cursor: pointer; transition: all 0.2s; }
+  .nav-tab.active { background: rgba(255,255,255,0.25); color: #fff; }
+  .btn-gear { background: var(--surface); border: none; color: var(--text2); width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+  .btn-gear:hover { background: rgba(255,255,255,0.2); color: #fff; transform: rotate(30deg); }
+  .btn-gear svg { width: 20px; height: 20px; }
+  .tab-panel[hidden] { display: none; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
+  .modal-overlay[hidden] { display: none; }
+  .modal { background: #2b2b31; border-radius: var(--radius); padding: 1.75rem; width: 100%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+  .modal-header { display: flex; align-items: center; margin-bottom: 1.5rem; }
+  .modal-title { flex: 1; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .btn-modal-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 16px; cursor: pointer; padding: 4px; transition: color 0.2s; }
+  .btn-modal-close:hover { color: #fff; }
+  .setting-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+  .setting-label { flex: 1; font-size: 15px; color: #fff; }
+  .num-input { width: 78px; background: rgba(0,0,0,0.25); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 8px 10px; color: #fff; font-family: 'DM Mono', monospace; font-size: 15px; outline: none; text-align: center; transition: border-color 0.2s; }
+  .num-input:focus { border-color: rgba(255,255,255,0.6); }
+  .setting-unit { font-size: 13px; color: var(--muted); font-family: 'DM Mono', monospace; width: 26px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.75rem; }
+  .btn-ghost { background: rgba(255,255,255,0.1); border: none; border-radius: 10px; padding: 9px 16px; color: var(--text2); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+  .btn-ghost:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+  .routine-card { background: var(--surface); border-radius: var(--radius); padding: 1.75rem; margin-bottom: 1.5rem; }
+  .routine-default-row { display: flex; align-items: center; gap: 10px; padding-bottom: 1.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.12); }
+  .routine-default-label { flex: 1; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .steps-list { display: flex; flex-direction: column; gap: 7px; }
+  .step-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px; background: rgba(0,0,0,0.12); border-radius: 10px; border: 1.5px solid transparent; transition: background 0.15s; }
+  .step-row:hover { background: rgba(0,0,0,0.2); }
+  .step-name { flex: 1; min-width: 0; background: transparent; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500; outline: none; padding: 2px 4px; border-radius: 4px; transition: background 0.2s; }
+  .step-name:focus { background: rgba(255,255,255,0.12); }
+  .step-name::placeholder { color: rgba(255,255,255,0.35); font-weight: 400; }
+  .step-min { width: 58px; background: rgba(0,0,0,0.25); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 5px 6px; color: #fff; font-family: 'DM Mono', monospace; font-size: 13px; outline: none; text-align: center; transition: border-color 0.2s; }
+  .step-min:focus { border-color: rgba(255,255,255,0.6); }
+  .step-min::placeholder { color: rgba(255,255,255,0.35); }
+  .step-unit { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .step-del { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 15px; opacity: 0; transition: opacity 0.2s; padding: 0 2px; }
+  .step-row:hover .step-del { opacity: 1; }
+  .step-del:hover { color: #fff; }
+  .routine-actions { display: flex; gap: 10px; margin-top: 1.25rem; }
+  .btn-add-step { flex: 1; background: rgba(255,255,255,0.1); border: 1.5px dashed rgba(255,255,255,0.25); color: rgba(255,255,255,0.6); border-radius: 10px; padding: 11px 20px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+  .btn-add-step:hover { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.4); }
+  .btn-start-routine { background: #fff; border: none; border-radius: 10px; padding: 11px 26px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--routine-bg); transition: all 0.2s; }
+  .btn-start-routine:hover:not(:disabled) { transform: scale(1.03); }
+  .btn-start-routine:disabled { opacity: 0.4; cursor: not-allowed; }
+  .routine-total { text-align: center; font-size: 12px; color: rgba(255,255,255,0.4); font-family: 'DM Mono', monospace; margin-top: 1rem; letter-spacing: 0.05em; }
+
+  .run-card { background: var(--surface); border-radius: var(--radius); padding: 3rem 2rem 2rem; margin-bottom: 1.5rem; text-align: center; }
+  .run-eyebrow { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.25rem; font-family: 'DM Mono', monospace; }
+  .run-step-name { font-family: 'DM Serif Display', serif; font-size: 46px; line-height: 1.15; color: #fff; margin-bottom: 1rem; word-break: break-word; }
+  .run-time { font-family: 'DM Mono', monospace; font-size: 34px; color: var(--text2); letter-spacing: 0.04em; }
+  .run-phase { font-size: 13px; color: var(--muted); margin-top: 6px; font-family: 'DM Mono', monospace; }
+  .run-controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 2rem; }
+  .btn-run-main { background: #fff; border: none; color: var(--routine-bg); min-width: 120px; padding: 0 24px; height: 56px; border-radius: 50px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500; transition: all 0.2s; }
+  .btn-run-main:hover { transform: scale(1.04); }
+
+  .timeline { background: var(--surface); border-radius: var(--radius); padding: 1.25rem; }
+  .timeline-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.4); font-family: 'DM Mono', monospace; margin-bottom: 0.9rem; }
+  .timeline-steps { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; }
+  .tl-step { position: relative; overflow: hidden; flex: 0 0 auto; min-width: 92px; max-width: 150px; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.15); border: 1.5px solid transparent; transition: all 0.25s; }
+  .tl-step.current { border-color: rgba(255,255,255,0.55); background: rgba(0,0,0,0.28); }
+  .tl-step.done { opacity: 0.45; }
+  .tl-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(255,255,255,0.13); transition: width 1s linear; }
+  .tl-content { position: relative; }
+  .tl-name { font-size: 14px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-step:not(.current):not(.done) .tl-name { color: var(--text2); font-weight: 400; }
+  .tl-dur { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 3px; }
 
   .mode-tabs { display: flex; background: var(--surface); border-radius: 50px; padding: 4px; margin-bottom: 2rem; }
   .mode-tab { flex: 1; padding: 10px 12px; border: none; background: transparent; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; border-radius: 50px; cursor: pointer; transition: all 0.2s; }
@@ -101,6 +171,20 @@
 </head>
 <body>
 <div class="app">
+  <div class="top-bar">
+    <div class="top-nav">
+      <button class="nav-tab active" data-tab="pomo">Pomodoro</button>
+      <button class="nav-tab" data-tab="routine">Routine</button>
+    </div>
+    <button class="btn-gear" id="btn-gear" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="tab-panel" id="panel-pomo">
   <div class="mode-tabs">
     <button class="mode-tab active" data-mode="pomo">Pomodoro</button>
     <button class="mode-tab" data-mode="short">Short Break</button>
@@ -147,8 +231,41 @@
   <div class="add-category-row">
     <button class="btn-add-category" id="btn-add-category">+ Add category</button>
   </div>
+  </div>
+
+  <div class="tab-panel" id="panel-routine" hidden>
+    <div id="routine-view"></div>
+  </div>
 
   <div class="saved-badge" id="saved-badge">saved locally</div>
+</div>
+
+<div class="modal-overlay" id="settings-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-header">
+      <span class="modal-title" id="settings-title">Timer settings</span>
+      <button class="btn-modal-close" id="btn-settings-close" aria-label="Close">✕</button>
+    </div>
+    <div class="setting-row">
+      <label class="setting-label" for="set-pomo">Pomodoro</label>
+      <input class="num-input" id="set-pomo" type="number" min="1" max="180"/>
+      <span class="setting-unit">min</span>
+    </div>
+    <div class="setting-row">
+      <label class="setting-label" for="set-short">Short break</label>
+      <input class="num-input" id="set-short" type="number" min="1" max="180"/>
+      <span class="setting-unit">min</span>
+    </div>
+    <div class="setting-row">
+      <label class="setting-label" for="set-long">Long break</label>
+      <input class="num-input" id="set-long" type="number" min="1" max="180"/>
+      <span class="setting-unit">min</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btn-settings-cancel">Cancel</button>
+      <button class="btn-confirm" id="btn-settings-save">Save</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -159,6 +276,8 @@ const MODES = {
 };
 const CIRC = 2 * Math.PI * 93;
 const STORAGE_KEY = 'pomodoro_v2';
+
+const DEFAULT_SETTINGS = { pomo: 25, short: 5, long: 15 };
 
 let mode='pomo', timeLeft=25*60, running=false, interval=null;
 let pomosCompleted=0, activeTaskId=null;
@@ -173,6 +292,27 @@ try {
 if (!data.categories || !data.categories.length) {
   data.categories = [{ id: data.nextCatId++, name: 'Tasks', tasks: [], showInput: false }];
 }
+if (!data.settings) data.settings = { ...DEFAULT_SETTINGS };
+if (!data.routine) data.routine = { defaultMin: 15, steps: [], nextStepId: 1 };
+
+// Whole minutes in [1,180]. Blank/non-numeric means "unset" and yields `def`;
+// an out-of-range number is clamped rather than thrown away.
+function clampMin(v, def) {
+  const raw = typeof v === 'string' ? v.trim() : v;
+  if (raw === '' || raw == null) return def;
+  const n = Math.round(Number(raw));
+  if (!Number.isFinite(n)) return def;
+  return Math.min(180, Math.max(1, n));
+}
+
+// Push saved settings into MODES, which is the single source of truth for durations.
+function applySettings() {
+  for (const key of ['pomo','short','long']) {
+    data.settings[key] = clampMin(data.settings[key], DEFAULT_SETTINGS[key]);
+    MODES[key].duration = data.settings[key] * 60;
+  }
+}
+applySettings();
 
 function save() {
   try {
@@ -237,7 +377,11 @@ const btnMain = document.getElementById('btn-main');
 const dotsEl = document.getElementById('pom-dots');
 
 function fmt(s) { return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
-function updateRing() { ring.style.strokeDashoffset = CIRC * (1 - timeLeft / MODES[mode].duration); }
+function updateRing() {
+  // Clamp: a duration changed mid-session can push the ratio outside [0,1].
+  const pct = Math.min(1, Math.max(0, timeLeft / MODES[mode].duration));
+  ring.style.strokeDashoffset = CIRC * (1 - pct);
+}
 
 function renderDots() {
   dotsEl.innerHTML='';
@@ -595,8 +739,432 @@ document.getElementById('btn-add-category').addEventListener('click',()=>{
   },60);
 });
 
+/* ---------- Top-level tabs ---------- */
+
+let activeTab = 'pomo';
+// Consecutive steps alternate between these, so an advance is visible at a glance.
+const ROUTINE_COLORS = ['#6d5b8e', '#38858a'];
+
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  document.getElementById('panel-pomo').hidden = tab !== 'pomo';
+  document.getElementById('panel-routine').hidden = tab !== 'routine';
+  if (tab === 'routine') renderRoutine();  // re-applies the routine background
+  else document.body.style.background = MODES[mode].bg;
+}
+document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.tab)));
+
+/* ---------- Settings modal ---------- */
+
+const overlay = document.getElementById('settings-overlay');
+
+function openSettings() {
+  document.getElementById('set-pomo').value = data.settings.pomo;
+  document.getElementById('set-short').value = data.settings.short;
+  document.getElementById('set-long').value = data.settings.long;
+  overlay.hidden = false;
+  document.getElementById('set-pomo').focus();
+}
+function closeSettings() { overlay.hidden = true; }
+
+function saveSettings() {
+  data.settings.pomo  = clampMin(document.getElementById('set-pomo').value,  DEFAULT_SETTINGS.pomo);
+  data.settings.short = clampMin(document.getElementById('set-short').value, DEFAULT_SETTINGS.short);
+  data.settings.long  = clampMin(document.getElementById('set-long').value,  DEFAULT_SETTINGS.long);
+  applySettings();
+  save();
+  closeSettings();
+  // A running timer keeps its remaining time; new durations take effect on the next reset.
+  if (!running) setMode(mode);
+  else updateRing();
+}
+
+document.getElementById('btn-gear').addEventListener('click',openSettings);
+document.getElementById('btn-settings-close').addEventListener('click',closeSettings);
+document.getElementById('btn-settings-cancel').addEventListener('click',closeSettings);
+document.getElementById('btn-settings-save').addEventListener('click',saveSettings);
+overlay.addEventListener('click',e=>{ if(e.target===overlay) closeSettings(); });
+overlay.addEventListener('keydown',e=>{ if(e.key==='Enter') saveSettings(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!overlay.hidden) closeSettings(); });
+
+/* ---------- Routine ---------- */
+
+const routine = data.routine;
+// phase: 'edit' | 'running' | 'complete'
+let rt = { phase:'edit', idx:0, timeLeft:0, running:false, interval:null };
+
+// Only a running step alternates; the editor and completion screens sit on the base color.
+function routineBg() {
+  return rt.phase === 'running' ? ROUTINE_COLORS[rt.idx % 2] : ROUTINE_COLORS[0];
+}
+
+// Drives --routine-bg so the white buttons' text color tracks the flip too.
+function applyRoutineBg() {
+  const c = routineBg();
+  document.documentElement.style.setProperty('--routine-bg', c);
+  if (activeTab === 'routine') document.body.style.background = c;
+}
+
+function stepSeconds(step) { return clampMin(step.min, routine.defaultMin) * 60; }
+function stepMinutes(step) { return step.min == null || step.min === '' ? routine.defaultMin : clampMin(step.min, routine.defaultMin); }
+
+function renderRoutine() {
+  if (rt.phase === 'edit') renderRoutineEditor();
+  else renderRoutineRun();
+}
+
+/* --- Editor --- */
+
+let dragStepId = null;
+
+function renderRoutineEditor() {
+  applyRoutineBg();
+  const view = document.getElementById('routine-view');
+  view.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'routine-card';
+
+  // Global default duration
+  const defRow = document.createElement('div');
+  defRow.className = 'routine-default-row';
+  const defLabel = document.createElement('span');
+  defLabel.className = 'routine-default-label';
+  defLabel.textContent = 'Default step length';
+  const defInput = document.createElement('input');
+  defInput.className = 'num-input';
+  defInput.type = 'number'; defInput.min = 1; defInput.max = 180;
+  defInput.value = routine.defaultMin;
+  defInput.addEventListener('change',()=>{
+    // Blank reverts to the current value, not to a hardcoded one.
+    routine.defaultMin = clampMin(defInput.value, routine.defaultMin);
+    defInput.value = routine.defaultMin;
+    save(); renderRoutineEditor();
+  });
+  const defUnit = document.createElement('span');
+  defUnit.className = 'setting-unit';
+  defUnit.textContent = 'min';
+  defRow.appendChild(defLabel); defRow.appendChild(defInput); defRow.appendChild(defUnit);
+  card.appendChild(defRow);
+
+  // Steps
+  const list = document.createElement('div');
+  list.className = 'steps-list';
+
+  if (!routine.steps.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'No steps yet — add one to build your routine';
+    list.appendChild(empty);
+  }
+
+  routine.steps.forEach(step => {
+    const row = document.createElement('div');
+    row.className = 'step-row';
+    row.dataset.stepId = step.id;
+
+    row.addEventListener('dragstart',e=>{
+      dragStepId = step.id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(()=>row.classList.add('dragging'),0);
+    });
+    row.addEventListener('dragend',()=>{
+      row.draggable = false;
+      row.classList.remove('dragging');
+      clearDropStyles();
+      dragStepId = null;
+    });
+    row.addEventListener('dragover',e=>{
+      if (dragStepId === null || dragStepId === step.id) return;
+      e.preventDefault();
+      clearDropStyles();
+      const rect = row.getBoundingClientRect();
+      row.classList.add(e.clientY < rect.top + rect.height/2 ? 'drag-over-top' : 'drag-over-bottom');
+    });
+    row.addEventListener('dragleave',e=>{
+      if (!row.contains(e.relatedTarget)) row.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    row.addEventListener('drop',e=>{
+      if (dragStepId === null || dragStepId === step.id) return;
+      e.preventDefault();
+      const insertAfter = row.classList.contains('drag-over-bottom');
+      clearDropStyles();
+      const fromIdx = routine.steps.findIndex(s=>s.id===dragStepId);
+      if (fromIdx === -1) return;
+      const [moved] = routine.steps.splice(fromIdx,1);
+      const toIdx = routine.steps.findIndex(s=>s.id===step.id);
+      routine.steps.splice(insertAfter ? toIdx+1 : toIdx, 0, moved);
+      dragStepId = null;
+      save(); renderRoutineEditor();
+    });
+
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.title = 'Drag to reorder';
+    // Arm dragging only from the handle, so the inputs stay selectable.
+    handle.addEventListener('mousedown',()=>{ row.draggable = true; });
+
+    const name = document.createElement('input');
+    name.className = 'step-name';
+    name.value = step.name;
+    name.placeholder = 'Step name';
+    name.maxLength = 60;
+    name.spellcheck = false;
+    // Update the model without re-rendering, or the input would lose focus mid-keystroke.
+    name.addEventListener('input',()=>{ step.name = name.value; save(); });
+    name.addEventListener('keydown',e=>{ if(e.key==='Enter') name.blur(); });
+
+    const min = document.createElement('input');
+    min.className = 'step-min';
+    min.type = 'number'; min.min = 1; min.max = 180;
+    min.value = step.min == null ? '' : step.min;
+    min.placeholder = routine.defaultMin;
+    min.title = 'Leave blank to use the default';
+    min.addEventListener('change',()=>{
+      const raw = min.value.trim();
+      step.min = raw === '' ? null : clampMin(raw, routine.defaultMin);
+      min.value = step.min == null ? '' : step.min;
+      save(); updateRoutineTotal();
+    });
+
+    const unit = document.createElement('span');
+    unit.className = 'step-unit';
+    unit.textContent = 'min';
+
+    const del = document.createElement('button');
+    del.className = 'step-del';
+    del.textContent = '✕';
+    del.title = 'Remove step';
+    del.addEventListener('click',()=>{
+      routine.steps = routine.steps.filter(s=>s.id!==step.id);
+      save(); renderRoutineEditor();
+    });
+
+    row.appendChild(handle); row.appendChild(name); row.appendChild(min);
+    row.appendChild(unit); row.appendChild(del);
+    list.appendChild(row);
+  });
+
+  card.appendChild(list);
+
+  const actions = document.createElement('div');
+  actions.className = 'routine-actions';
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn-add-step';
+  addBtn.textContent = '+ Add step';
+  addBtn.addEventListener('click',()=>{
+    routine.steps.push({ id: routine.nextStepId++, name: '', min: null });
+    save(); renderRoutineEditor();
+    const inputs = document.querySelectorAll('.step-name');
+    const last = inputs[inputs.length-1];
+    if (last) last.focus();
+  });
+
+  const startBtn = document.createElement('button');
+  startBtn.className = 'btn-start-routine';
+  startBtn.textContent = 'Start routine';
+  startBtn.disabled = routine.steps.length === 0;
+  startBtn.addEventListener('click',startRoutine);
+
+  actions.appendChild(addBtn); actions.appendChild(startBtn);
+  card.appendChild(actions);
+
+  const total = document.createElement('div');
+  total.className = 'routine-total';
+  total.id = 'routine-total';
+  card.appendChild(total);
+
+  view.appendChild(card);
+  updateRoutineTotal();
+}
+
+function updateRoutineTotal() {
+  const el = document.getElementById('routine-total');
+  if (!el) return;
+  if (!routine.steps.length) { el.textContent = ''; return; }
+  const mins = routine.steps.reduce((sum,s)=>sum+stepMinutes(s),0);
+  const h = Math.floor(mins/60), m = mins % 60;
+  el.textContent = `${routine.steps.length} step${routine.steps.length===1?'':'s'} · ${h?`${h}h `:''}${m}m total`;
+}
+
+/* --- Runner --- */
+
+function stepLabel(step, i) { return step.name.trim() || `Step ${i+1}`; }
+
+function startRoutine() {
+  if (!routine.steps.length) return;
+  rt.phase = 'running';
+  rt.idx = 0;
+  rt.timeLeft = stepSeconds(routine.steps[0]);
+  rt.running = true;
+  clearInterval(rt.interval);
+  rt.interval = setInterval(routineTick, 1000);
+  renderRoutineRun();
+}
+
+function stopRoutine() {
+  clearInterval(rt.interval);
+  rt = { phase:'edit', idx:0, timeLeft:0, running:false, interval:null };
+  renderRoutineEditor();
+}
+
+function advanceStep() {
+  rt.idx++;
+  if (rt.idx >= routine.steps.length) {
+    clearInterval(rt.interval);
+    rt.running = false;
+    rt.phase = 'complete';
+    renderRoutineRun();
+    return;
+  }
+  rt.timeLeft = stepSeconds(routine.steps[rt.idx]);
+  renderRoutineRun();
+}
+
+function routineTick() {
+  rt.timeLeft--;
+  if (rt.timeLeft <= 0) {
+    updateRunDisplay();
+    playAlarm();
+    advanceStep();
+    return;
+  }
+  updateRunDisplay();
+}
+
+// Per-second updates touch only the time text and the progress fill, so the
+// timeline isn't rebuilt (and its scroll position isn't lost) every tick.
+function updateRunDisplay() {
+  const timeEl = document.getElementById('run-time');
+  if (timeEl) timeEl.textContent = fmt(Math.max(0, rt.timeLeft));
+  const fill = document.querySelector('.tl-step.current .tl-fill');
+  if (fill) {
+    const total = stepSeconds(routine.steps[rt.idx]);
+    fill.style.width = `${Math.min(100, Math.max(0, (1 - rt.timeLeft/total) * 100))}%`;
+  }
+}
+
+function renderRoutineRun() {
+  applyRoutineBg();
+  const view = document.getElementById('routine-view');
+  view.innerHTML = '';
+  const done = rt.phase === 'complete';
+
+  const card = document.createElement('div');
+  card.className = 'run-card';
+
+  const eyebrow = document.createElement('div');
+  eyebrow.className = 'run-eyebrow';
+  eyebrow.textContent = done ? 'Routine complete' : `Step ${rt.idx+1} of ${routine.steps.length}`;
+  card.appendChild(eyebrow);
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'run-step-name';
+  nameEl.textContent = done ? 'All done 🎉' : stepLabel(routine.steps[rt.idx], rt.idx);
+  card.appendChild(nameEl);
+
+  if (!done) {
+    const timeEl = document.createElement('div');
+    timeEl.className = 'run-time';
+    timeEl.id = 'run-time';
+    timeEl.textContent = fmt(Math.max(0, rt.timeLeft));
+    card.appendChild(timeEl);
+
+    const phaseEl = document.createElement('div');
+    phaseEl.className = 'run-phase';
+    phaseEl.textContent = rt.running ? 'in progress' : 'paused';
+    card.appendChild(phaseEl);
+  }
+
+  const controls = document.createElement('div');
+  controls.className = 'run-controls';
+
+  if (done) {
+    const again = document.createElement('button');
+    again.className = 'btn-run-main';
+    again.textContent = 'Run again';
+    again.addEventListener('click',startRoutine);
+    const edit = document.createElement('button');
+    edit.className = 'btn-icon';
+    edit.textContent = '✎';
+    edit.title = 'Edit routine';
+    edit.addEventListener('click',stopRoutine);
+    controls.appendChild(edit); controls.appendChild(again);
+  } else {
+    const stop = document.createElement('button');
+    stop.className = 'btn-icon';
+    stop.textContent = '✕';
+    stop.title = 'Stop and edit';
+    stop.addEventListener('click',stopRoutine);
+
+    const main = document.createElement('button');
+    main.className = 'btn-run-main';
+    main.textContent = rt.running ? 'Pause' : 'Resume';
+    main.addEventListener('click',()=>{
+      if (rt.running) { clearInterval(rt.interval); rt.running = false; }
+      else { rt.running = true; rt.interval = setInterval(routineTick,1000); }
+      renderRoutineRun();
+    });
+
+    const skip = document.createElement('button');
+    skip.className = 'btn-icon';
+    skip.textContent = '⏭';
+    skip.title = 'Skip step';
+    skip.addEventListener('click',advanceStep);
+
+    controls.appendChild(stop); controls.appendChild(main); controls.appendChild(skip);
+  }
+  card.appendChild(controls);
+  view.appendChild(card);
+
+  // Progress timeline
+  const tl = document.createElement('div');
+  tl.className = 'timeline';
+  const tlLabel = document.createElement('div');
+  tlLabel.className = 'timeline-label';
+  tlLabel.textContent = 'Progress';
+  tl.appendChild(tlLabel);
+
+  const tlSteps = document.createElement('div');
+  tlSteps.className = 'timeline-steps';
+  routine.steps.forEach((step,i)=>{
+    const isDone = done || i < rt.idx;
+    const isCurrent = !done && i === rt.idx;
+    const el = document.createElement('div');
+    el.className = 'tl-step' + (isCurrent ? ' current' : '') + (isDone ? ' done' : '');
+
+    const fill = document.createElement('div');
+    fill.className = 'tl-fill';
+    el.appendChild(fill);
+
+    const content = document.createElement('div');
+    content.className = 'tl-content';
+    const n = document.createElement('div');
+    n.className = 'tl-name';
+    n.textContent = (isDone ? '✓ ' : '') + stepLabel(step,i);
+    const d = document.createElement('div');
+    d.className = 'tl-dur';
+    d.textContent = `${stepMinutes(step)} min`;
+    content.appendChild(n); content.appendChild(d);
+    el.appendChild(content);
+    tlSteps.appendChild(el);
+  });
+  tl.appendChild(tlSteps);
+  view.appendChild(tl);
+
+  if (!done) {
+    updateRunDisplay();
+    const cur = tlSteps.querySelector('.tl-step.current');
+    if (cur) cur.scrollIntoView({ block:'nearest', inline:'nearest' });
+  }
+}
+
 setMode('pomo');
 renderCategories();
+renderRoutine();
 </script>
 </body>
 </html>
