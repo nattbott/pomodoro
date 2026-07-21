@@ -167,6 +167,95 @@
 
   .saved-badge { font-size: 11px; color: rgba(255,255,255,0.3); font-family: 'DM Mono', monospace; text-align: center; margin-top: 1rem; letter-spacing: 0.05em; opacity: 0; transition: opacity 1s; }
   .saved-badge.show { opacity: 1; }
+
+  /* ---------- E-reader (e-ink) theme ---------- */
+  /* High-contrast monochrome: white paper, black ink, hairline borders,
+     no low-opacity fills or transitions (e-ink panels ghost and can't
+     render subtle greys). Uses !important to beat the inline background/
+     colour styles the JS sets on the body and buttons. */
+  :root.ereader { --muted: #555; --text2: #222; }
+  .ereader * { transition: none !important; box-shadow: none !important; }
+  .ereader body { background: #fff !important; color: #111; }
+
+  /* Cards, tab bars, timeline → white with a hairline black border */
+  .ereader .timer-card,
+  .ereader .category,
+  .ereader .routine-card,
+  .ereader .run-card,
+  .ereader .timeline,
+  .ereader .top-nav,
+  .ereader .mode-tabs { background: #fff !important; border: 1.5px solid #111; }
+
+  /* Tabs */
+  .ereader .nav-tab,
+  .ereader .mode-tab { color: #555; }
+  .ereader .nav-tab.active,
+  .ereader .mode-tab.active { background: #111 !important; color: #fff !important; }
+
+  /* Round / icon buttons → outlined */
+  .ereader .btn-gear,
+  .ereader .btn-icon,
+  .ereader .btn-ereader,
+  .ereader .btn-ghost,
+  .ereader .btn-test,
+  .ereader .btn-cat-clear,
+  .ereader .btn-cat-add,
+  .ereader .btn-cat-delete { background: #fff !important; border: 1.5px solid #111; color: #111 !important; }
+  .ereader .btn-gear:hover { transform: none; }
+  .ereader .btn-ereader.active { background: #111 !important; color: #fff !important; }
+  .btn-ereader.active { background: rgba(255,255,255,0.28); color: #fff; }
+
+  /* Primary action buttons → solid black ink */
+  .ereader .btn-main,
+  .ereader .btn-run-main,
+  .ereader .btn-start-routine,
+  .ereader .btn-confirm { background: #111 !important; color: #fff !important; border: 1.5px solid #111; }
+  .ereader .btn-main:hover,
+  .ereader .btn-run-main:hover,
+  .ereader .btn-start-routine:hover:not(:disabled) { transform: none; }
+  .ereader .btn-add-step,
+  .ereader .btn-add-category { background: #fff !important; border: 1.5px dashed #111; color: #333 !important; }
+
+  /* Text surfaces */
+  .ereader .timer-time,
+  .ereader .run-step-name,
+  .ereader .task-name,
+  .ereader .tl-name,
+  .ereader .step-name,
+  .ereader .run-step-name,
+  .ereader .cat-title:focus { color: #111 !important; }
+  .ereader .task-name.done { color: #777 !important; }
+
+  /* Progress ring → black ink on light track */
+  .ereader .ring-bg { stroke: #ccc; }
+  .ereader .ring-progress { stroke: #111; }
+
+  /* Inputs */
+  .ereader .num-input,
+  .ereader .task-input,
+  .ereader .step-min,
+  .ereader .sound-select { background: #fff !important; border: 1.5px solid #111; color: #111 !important; }
+
+  /* Task rows, steps, timeline chips → light grey fills, dark text */
+  .ereader .task-item,
+  .ereader .step-row { background: #f2f2f2 !important; border-color: #ccc; }
+  .ereader .task-item.active-task { border-color: #111 !important; }
+  .ereader .tl-step { background: #f2f2f2; }
+  .ereader .tl-step.current { border-color: #111; background: #e6e6e6; }
+  .ereader .tl-fill { background: rgba(0,0,0,0.12); }
+
+  /* Dots & checkboxes */
+  .ereader .pom-dot { background: #ccc; }
+  .ereader .pom-dot.done { background: #111; }
+  .ereader .pom-dot.current { background: #777; }
+  .ereader .task-check { border-color: #111; }
+  .ereader .task-check.done { background: #111 !important; border-color: #111; color: #fff !important; }
+
+  .ereader .vol-slider { accent-color: #111; }
+  .ereader .drag-handle,
+  .ereader .cat-drag-handle { color: #999; }
+  .ereader .modal { background: #fff; color: #111; border: 1.5px solid #111; }
+  .ereader .setting-label { color: #111; }
 </style>
 </head>
 <body>
@@ -176,6 +265,12 @@
       <button class="nav-tab active" data-tab="pomo">Pomodoro</button>
       <button class="nav-tab" data-tab="routine">Routine</button>
     </div>
+    <button class="btn-gear btn-ereader" id="btn-ereader" title="E-reader mode" aria-label="Toggle e-reader mode" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 4h6a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H2z"/>
+        <path d="M22 4h-6a3 3 0 0 0-3 3v13a2.5 2.5 0 0 1 2.5-2.5H22z"/>
+      </svg>
+    </button>
     <button class="btn-gear" id="btn-gear" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
@@ -294,6 +389,7 @@ if (!data.categories || !data.categories.length) {
 }
 if (!data.settings) data.settings = { ...DEFAULT_SETTINGS };
 if (!data.routine) data.routine = { defaultMin: 15, steps: [], nextStepId: 1 };
+if (typeof data.ereader !== 'boolean') data.ereader = false;
 
 // Whole minutes in [1,180]. Blank/non-numeric means "unset" and yields `def`;
 // an out-of-range number is clamped rather than thrown away.
@@ -779,6 +875,22 @@ function saveSettings() {
   if (!running) setMode(mode);
   else updateRing();
 }
+
+/* ---------- E-reader mode ---------- */
+
+const btnEreader = document.getElementById('btn-ereader');
+
+function applyEreader() {
+  document.documentElement.classList.toggle('ereader', data.ereader);
+  btnEreader.classList.toggle('active', data.ereader);
+  btnEreader.setAttribute('aria-pressed', String(data.ereader));
+}
+btnEreader.addEventListener('click',()=>{
+  data.ereader = !data.ereader;
+  applyEreader();
+  save();
+});
+applyEreader();
 
 document.getElementById('btn-gear').addEventListener('click',openSettings);
 document.getElementById('btn-settings-close').addEventListener('click',closeSettings);
